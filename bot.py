@@ -7,10 +7,6 @@ from services.youtube import get_youtube_link
 from utils.cache import get as cache_get, set as cache_set
 
 
-# 🔧 DEV GUILD (for instant slash command updates)
-GUILD_ID = 1429080736899792948  # replace with your server ID
-
-
 class MusicBot(discord.Client):
     def __init__(self):
         intents = discord.Intents.default()
@@ -18,11 +14,9 @@ class MusicBot(discord.Client):
         self.tree = app_commands.CommandTree(self)
 
     async def setup_hook(self):
-        # Sync commands instantly to dev guild
-        guild = discord.Object(id=GUILD_ID)
-        self.tree.copy_global_to(guild=guild)
-        await self.tree.sync(guild=guild)
-        print("✅ Slash commands synced to dev guild")
+        # 🌍 GLOBAL sync (works in any server)
+        await self.tree.sync()
+        print("🌍 Slash commands synced globally")
 
 
 bot = MusicBot()
@@ -71,13 +65,12 @@ async def nowplaying(interaction: discord.Interaction):
         if youtube_link:
             cached["youtube"] = youtube_link
 
-    # Save cache if updated
     if cached:
         cache_set(cache_key, cached)
 
-    # Build embed
+    # 🧱 Build embed
     embed = discord.Embed(
-        title="Now Playing:",
+        title="Now Playing",
         description=f"**{track}**\nby *{artist}*",
         color=0xFFFFFF
     )
@@ -88,8 +81,9 @@ async def nowplaying(interaction: discord.Interaction):
     if youtube_link:
         embed.add_field(name="YouTube", value=youtube_link, inline=False)
 
+    # thumbnail
     if album_art:
-        embed.set_thumbnail(url=album_art)
+        embed.set_image(url=album_art)
 
     await interaction.response.send_message(embed=embed)
 
