@@ -35,13 +35,16 @@ async def on_ready():
     description="Show what I am currently listening to"
 )
 async def nowplaying(interaction: discord.Interaction):
+    # 1. Immediately defer the response
+    # This shows "Bot is thinking..." in Discord
+    await interaction.response.defer()
+
+    # 2. Now do your slow API calls
     data = get_now_playing()
 
     if not data:
-        await interaction.response.send_message(
-            "❌ Could not fetch now playing data.",
-            ephemeral=True
-        )
+        # Since we deferred, we must use followups.send instead of response.send_message
+        await interaction.followup.send("❌ Could not fetch now playing data.", ephemeral=True)
         return
 
     track = data["track"]
@@ -51,14 +54,12 @@ async def nowplaying(interaction: discord.Interaction):
     cache_key = f"{artist} - {track}"
     cached = cache_get(cache_key) or {}
 
-    # 🎨 Album art (cached)
     album_art = cached.get("album_art")
     if not album_art:
         album_art = get_album_art(artist, album, track)
         if album_art:
             cached["album_art"] = album_art
 
-    # ▶️ YouTube link (cached)
     youtube_link = cached.get("youtube")
     if not youtube_link:
         youtube_link = get_youtube_link(track, artist)
@@ -68,7 +69,6 @@ async def nowplaying(interaction: discord.Interaction):
     if cached:
         cache_set(cache_key, cached)
 
-    # 🧱 Build embed
     embed = discord.Embed(
         title="Now Playing",
         description=f"**{track}**\nby *{artist}*",
@@ -77,15 +77,13 @@ async def nowplaying(interaction: discord.Interaction):
 
     if album:
         embed.add_field(name="Album", value=album, inline=False)
-
     if youtube_link:
         embed.add_field(name="YouTube", value=youtube_link, inline=False)
-
-    # thumbnail
     if album_art:
         embed.set_image(url=album_art)
 
-    await interaction.response.send_message(embed=embed)
+    # 3. Use followup.send to finish the response
+    await interaction.followup.send(embed=embed)
 
 
 # ─────────────────────────────────────────────
