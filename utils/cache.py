@@ -2,28 +2,34 @@ import json
 from pathlib import Path
 
 CACHE_FILE = Path("cache.json")
+_cache = None
 
 def _load():
-    """Safely loads JSON data, handling empty or corrupted files."""
+    """Loads cache into memory if not already loaded."""
+    global _cache
+    if _cache is not None:
+        return
+
     if not CACHE_FILE.exists() or CACHE_FILE.stat().st_size == 0:
-        return {}
+        _cache = {}
+        return
     
     try:
-        return json.loads(CACHE_FILE.read_text())
+        _cache = json.loads(CACHE_FILE.read_text())
     except (json.JSONDecodeError, UnicodeDecodeError):
-        # If the file exists but isn't valid JSON, return empty dict 
-        # so the bot doesn't crash.
         print(f"⚠️ Warning: {CACHE_FILE} is corrupted. Resetting cache.")
-        return {}
+        _cache = {}
 
-def _save(data):
-    """Saves data to the cache file with pretty-printing."""
-    CACHE_FILE.write_text(json.dumps(data, indent=2))
+def _save():
+    """Saves memory cache to disk."""
+    if _cache is not None:
+        CACHE_FILE.write_text(json.dumps(_cache, indent=2))
 
 def get(key: str):
-    return _load().get(key)
+    _load()
+    return _cache.get(key)
 
 def set(key: str, value):
-    data = _load()
-    data[key] = value
-    _save(data)
+    _load()
+    _cache[key] = value
+    _save()

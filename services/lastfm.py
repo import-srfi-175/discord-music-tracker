@@ -1,4 +1,4 @@
-import requests
+import aiohttp
 import re
 import config
 
@@ -14,7 +14,7 @@ def force_hd_url(url: str) -> str:
     # Replaces the size segment (e.g., /300x300/ or /174s/) with /_/ 
     return re.sub(r'\/i\/u\/[^\/]+\/', '/i/u/_/', url)
 
-def get_now_playing():
+async def get_now_playing(session: aiohttp.ClientSession):
     """Fetches current track info."""
     params = {
         "method": "user.getrecenttracks",
@@ -24,8 +24,11 @@ def get_now_playing():
         "limit": 1
     }
     try:
-        response = requests.get(BASE_URL, params=params, timeout=10)
-        data = response.json()
+        async with session.get(BASE_URL, params=params) as response:
+            if response.status != 200:
+                return None
+            data = await response.json()
+            
         track = data["recenttracks"]["track"][0]
         
         return {
@@ -34,10 +37,10 @@ def get_now_playing():
             "album": track.get("album", {}).get("#text", ""),
             "now_playing": "@attr" in track,
         }
-    except (KeyError, IndexError, requests.RequestException):
+    except (KeyError, IndexError, aiohttp.ClientError):
         return None
 
-def get_album_art(artist: str, album: str = None, track: str = None):
+async def get_album_art(session: aiohttp.ClientSession, artist: str, album: str = None, track: str = None):
     """
     Fetches the best available image URL and forces it to original resolution.
     """
@@ -51,12 +54,14 @@ def get_album_art(artist: str, album: str = None, track: str = None):
             "format": "json"
         }
         try:
-            res = requests.get(BASE_URL, params=params, timeout=10).json()
-            images = res.get("album", {}).get("image", [])
-            # Grab the first non-empty URL (checking largest sizes first)
-            raw_url = next((img["#text"] for img in reversed(images) if img["#text"]), None)
-            if raw_url:
-                return force_hd_url(raw_url)
+            async with session.get(BASE_URL, params=params) as response:
+                if response.status == 200:
+                    res = await response.json()
+                    images = res.get("album", {}).get("image", [])
+                    # Grab the first non-empty URL (checking largest sizes first)
+                    raw_url = next((img["#text"] for img in reversed(images) if img["#text"]), None)
+                    if raw_url:
+                        return force_hd_url(raw_url)
         except Exception:
             pass
 
@@ -70,18 +75,14 @@ def get_album_art(artist: str, album: str = None, track: str = None):
             "format": "json"
         }
         try:
-            res = requests.get(BASE_URL, params=params, timeout=10).json()
-            images = res.get("track", {}).get("album", {}).get("image", [])
-            raw_url = next((img["#text"] for img in reversed(images) if img["#text"]), None)
-            if raw_url:
-                return force_hd_url(raw_url)
+            async with session.get(BASE_URL, params=params) as response:
+                if response.status == 200:
+                    res = await response.json()
+                    images = res.get("track", {}).get("album", {}).get("image", [])
+                    raw_url = next((img["#text"] for img in reversed(images) if img["#text"]), None)
+                    if raw_url:
+                        return force_hd_url(raw_url)
         except Exception:
             pass
 
     return None
-
-if __name__ == "__main__":
-    now = get_now_playing()
-    if now:
-        art = get_album_art(now['artist'], now['album'], now['track'])
-        print(f"Track: {now['track']}\nArtist: {now['artist']}\nArt: {art}")

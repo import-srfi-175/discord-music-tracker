@@ -1,6 +1,7 @@
 import yt_dlp
+import asyncio
 
-def get_youtube_link(track: str, artist: str) -> str | None:
+async def get_youtube_link(track: str, artist: str) -> str | None:
     queries = [
         f"{track} {artist} topic",
         f"{track} {artist} official audio",
@@ -13,14 +14,21 @@ def get_youtube_link(track: str, artist: str) -> str | None:
         "extract_flat": True,
     }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        for q in queries:
+    loop = asyncio.get_running_loop()
+
+    def _search(q):
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             try:
                 info = ydl.extract_info(f"ytsearch1:{q}", download=False)
                 if info and info.get("entries"):
-                    video_id = info["entries"][0]["id"]
-                    return f"https://www.youtube.com/watch?v={video_id}"
+                    return info["entries"][0]["id"]
             except Exception:
-                continue
+                return None
+        return None
+
+    for q in queries:
+        video_id = await loop.run_in_executor(None, _search, q)
+        if video_id:
+            return f"https://www.youtube.com/watch?v={video_id}"
 
     return None
