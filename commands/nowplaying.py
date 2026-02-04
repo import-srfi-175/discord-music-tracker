@@ -1,11 +1,40 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
+import config
 
-from services.lastfm import get_now_playing, get_album_art
+from services.lastfm import get_now_playing, get_album_art, get_track_playcount
+from services.lyrics import get_lyrics
 from services.youtube import get_youtube_link
 from utils.cache import get as cache_get, set as cache_set
 from utils.image import get_dominant_color
+
+class NowPlayingView(discord.ui.View):
+    def __init__(self, bot, youtube_link, track, artist):
+        super().__init__(timeout=None)
+        self.bot = bot
+        self.track = track
+        self.artist = artist
+        
+        # YouTube Button (Link)
+        if youtube_link:
+            self.add_item(discord.ui.Button(label="YouTube", url=youtube_link))
+    
+    @discord.ui.button(label="Show Lyrics", style=discord.ButtonStyle.secondary, custom_id="show_lyrics")
+    async def show_lyrics(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer(ephemeral=True)
+        
+        lyrics = await get_lyrics(self.bot.session, self.track, self.artist)
+        
+        if lyrics:
+            # Discord limit is 4096 chars for description
+            if len(lyrics) > 4000:
+                lyrics = lyrics[:4000] + "..."
+                
+            embed = discord.Embed(title=f"Lyrics: {self.track}", description=lyrics, color=0xFFFFFF)
+            await interaction.followup.send(embed=embed, ephemeral=True)
+        else:
+            await interaction.followup.send("❌ Lyrics not found.", ephemeral=True)
 
 class NowPlaying(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -81,14 +110,12 @@ class NowPlaying(commands.Cog):
             # embed.set_thumbnail(url=album_art) # Removed as requested
             embed.set_image(url=album_art)     # Keep Large Bottom
 
-        # YouTube Button
-        view = None
-        if youtube_link:
-            view = discord.ui.View()
-            # unique_id is not strictly needed for link buttons but good practice if persistent
-            # Using a standard play button emoji which resembles YouTube play
-            btn = discord.ui.Button(label="Listen on YouTube", url=youtube_link, emoji="▶️")
-            view.add_item(btn)
+        # Footer with Track Scrobbles
+        track_scrobbles = await get_track_playcount(session, artist, track)
+        embed.set_footer(text=f"Track Scrobbles: {track_scrobbles}")
+
+        # Controls View with Lyrics
+        view = NowPlayingView(self.bot, youtube_link, track, artist)
 
         await interaction.followup.send(embed=embed, view=view)
 

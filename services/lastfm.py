@@ -30,12 +30,14 @@ async def get_now_playing(session: aiohttp.ClientSession):
             data = await response.json()
             
         track = data["recenttracks"]["track"][0]
+        total_scrobbles = data["recenttracks"].get("@attr", {}).get("total", "0")
         
         return {
             "track": track["name"],
             "artist": track["artist"]["#text"],
             "album": track.get("album", {}).get("#text", ""),
             "now_playing": "@attr" in track,
+            "total_scrobbles": total_scrobbles
         }
     except (KeyError, IndexError, aiohttp.ClientError):
         return None
@@ -175,4 +177,25 @@ async def get_weekly_track_chart(session: aiohttp.ClientSession):
                 return data.get("weeklytrackchart", {}).get("track", [])
     except Exception:
         pass
+    except Exception:
+        pass
     return []
+
+async def get_track_playcount(session: aiohttp.ClientSession, artist: str, track: str) -> str:
+    """Fetches the user's playcount for a specific track."""
+    params = {
+        "method": "track.getInfo",
+        "api_key": config.LASTFM_API_KEY,
+        "artist": artist,
+        "track": track,
+        "username": config.LASTFM_USERNAME, # Needed to get userplaycount
+        "format": "json"
+    }
+    try:
+        async with session.get(BASE_URL, params=params) as response:
+            if response.status == 200:
+                data = await response.json()
+                return data.get("track", {}).get("userplaycount", "0")
+    except Exception:
+        pass
+    return "0"
