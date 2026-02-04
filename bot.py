@@ -52,6 +52,7 @@ class MusicBot(commands.Bot):
         await self.load_extension("commands.nowplaying")
         await self.load_extension("commands.user")
         await self.load_extension("commands.charts")
+        await self.load_extension("commands.ai")
         
         await self.tree.sync()
         print("🌍 Slash commands synced globally")

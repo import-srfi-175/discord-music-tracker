@@ -19,3 +19,6 @@ if not LASTFM_API_KEY:
 
 if not LASTFM_USERNAME:
     raise RuntimeError("LASTFM_USERNAME is missing")
+
+# gemini
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
