@@ -22,7 +22,8 @@ class NowPlayingView(discord.ui.View):
     
     @discord.ui.button(label="Show Lyrics", style=discord.ButtonStyle.secondary, custom_id="show_lyrics")
     async def show_lyrics(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
+        # Explicit loading state
+        await interaction.response.send_message("🔍 **Searching for lyrics...**", ephemeral=True)
         
         lyrics = await get_lyrics(self.bot.session, self.track, self.artist)
         
@@ -32,9 +33,9 @@ class NowPlayingView(discord.ui.View):
                 lyrics = lyrics[:4000] + "..."
                 
             embed = discord.Embed(title=f"Lyrics: {self.track}", description=lyrics, color=0xFFFFFF)
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await interaction.edit_original_response(content=None, embed=embed)
         else:
-            await interaction.followup.send("❌ Lyrics not found.", ephemeral=True)
+            await interaction.edit_original_response(content="❌ **Lyrics not found.**")
 
 class NowPlaying(commands.Cog):
     def __init__(self, bot: commands.Bot):
