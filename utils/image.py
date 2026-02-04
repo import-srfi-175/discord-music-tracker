@@ -48,3 +48,28 @@ async def create_collage(session: aiohttp.ClientSession, image_urls: list[str], 
     canvas.save(output, format="PNG")
     output.seek(0)
     return output
+
+async def get_dominant_color(session: aiohttp.ClientSession, url: str) -> int:
+    """
+    Downloads image and returns the dominant color as a hex integer.
+    Returns default discord dark grey (0x2F3136) on failure.
+    """
+    if not url:
+        return 0x2F3136
+        
+    try:
+        async with session.get(url) as resp:
+            if resp.status == 200:
+                data = await resp.read()
+                img = Image.open(BytesIO(data)).convert("RGB")
+                
+                # Resize to 1x1 to get average color efficiently
+                img = img.resize((1, 1))
+                color = img.getpixel((0, 0))
+                
+                # Convert (R, G, B) to hex integer
+                return (color[0] << 16) + (color[1] << 8) + color[2]
+    except Exception:
+        pass
+        
+    return 0x2F3136
