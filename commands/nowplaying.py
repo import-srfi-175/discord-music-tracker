@@ -7,6 +7,7 @@ from services.lastfm import get_now_playing, get_album_art, get_track_playcount
 from services.lyrics import get_lyrics
 from services.youtube import get_youtube_link
 from utils.cache import cache
+from utils.image import get_dominant_color
 
 class NowPlayingView(discord.ui.View):
     def __init__(self, bot, youtube_link, track, artist):
