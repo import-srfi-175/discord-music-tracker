@@ -5,7 +5,7 @@ CACHE_FILE = Path("cache.json")
 _cache = None
 
 def _load():
-    """Loads cache into memory if not already loaded."""
+    """loads cache into memory if not already loaded"""
     global _cache
     if _cache is not None:
         return
@@ -21,7 +21,7 @@ def _load():
         _cache = {}
 
 def _save():
-    """Saves memory cache to disk."""
+    """saves memory cache to disk"""
     if _cache is not None:
         CACHE_FILE.write_text(json.dumps(_cache, indent=2))
 

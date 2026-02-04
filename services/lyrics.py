@@ -4,8 +4,8 @@ LRCLIB_URL = "https://lrclib.net/api/get"
 
 async def get_lyrics(session: aiohttp.ClientSession, track: str, artist: str) -> str:
     """
-    Fetches plain lyrics from LRCLIB.
-    Returns None if not found.
+    fetches plain lyrics from lrclib.
+    returns none if not found.
     """
     params = {
         "track_name": track,
@@ -16,7 +16,7 @@ async def get_lyrics(session: aiohttp.ClientSession, track: str, artist: str) ->
         async with session.get(LRCLIB_URL, params=params) as response:
             if response.status == 200:
                 data = await response.json()
-                # prioritize plainLyrics (no timestamps)
+                # prioritize plainlyrics (no timestamps)
                 return data.get("plainLyrics")
     except Exception:
         pass

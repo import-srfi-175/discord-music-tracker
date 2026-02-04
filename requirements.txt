@@ -15,4 +15,4 @@ urllib3==2.6.3
 Pillow==11.1.0
 yarl==1.22.0
 yt-dlp==2026.1.31
-google-generativeai==0.8.6
+google-genai==1.61.0

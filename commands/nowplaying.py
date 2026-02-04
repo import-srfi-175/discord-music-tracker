@@ -16,19 +16,19 @@ class NowPlayingView(discord.ui.View):
         self.track = track
         self.artist = artist
         
-        # YouTube Button (Link)
+        # youtube button (link)
         if youtube_link:
             self.add_item(discord.ui.Button(label="YouTube", url=youtube_link))
     
     @discord.ui.button(label="Show Lyrics", style=discord.ButtonStyle.secondary, custom_id="show_lyrics")
     async def show_lyrics(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # Explicit loading state
+        # explicit loading state
         await interaction.response.send_message("🔍 **Searching for lyrics...**", ephemeral=True)
         
         lyrics = await get_lyrics(self.bot.session, self.track, self.artist)
         
         if lyrics:
-            # Discord limit is 4096 chars for description
+            # discord limit is 4096 chars for description
             if len(lyrics) > 4000:
                 lyrics = lyrics[:4000] + "..."
                 
@@ -46,10 +46,10 @@ class NowPlaying(commands.Cog):
         description="Show what I am currently listening to"
     )
     async def nowplaying(self, interaction: discord.Interaction):
-        # 1. Immediately defer the response
+        # 1. immediately defer the response
         await interaction.response.defer()
 
-        # 2. Get the shared session from the bot
+        # 2. get the shared session from the bot
         session = self.bot.session
 
         data = await get_now_playing(session)
@@ -63,59 +63,59 @@ class NowPlaying(commands.Cog):
         album = data["album"]
         is_playing = data["now_playing"]
 
-        # Cache Logic
+        # cache logic
         cache_key = f"{artist} - {track}"
         cached = cache_get(cache_key) or {}
 
-        # Fetch Album Art
+        # fetch album art
         album_art = cached.get("album_art")
         if not album_art:
             album_art = await get_album_art(session, artist, album, track)
             if album_art:
                 cached["album_art"] = album_art
         
-        # Fetch YouTube Link
+        # fetch youtube link
         youtube_link = cached.get("youtube")
         if not youtube_link:
             youtube_link = await get_youtube_link(track, artist)
             if youtube_link:
                 cached["youtube"] = youtube_link
 
-        # Update Cache
+        # update cache
         if cached:
             cache_set(cache_key, cached)
 
-        # UI/UX Logic
+        # ui/ux logic
         color = await get_dominant_color(session, album_art) if album_art else 0x2F3136
         status_text = "Now Playing 🎧" if is_playing else "Last Played 🕒"
         
-        # URL Encoding for Last.fm links
+        # url encoding for last.fm links
         from urllib.parse import quote
         artist_url = f"https://www.last.fm/music/{quote(artist)}"
         album_url = f"{artist_url}/{quote(album)}" if album else ""
         
-        # Construct Description with Font Hierarchy
-        # H1 for Track (Big), Bold for Artist/Album
+        # construct description with font hierarchy
+        # h1 for track (big), bold for artist/album
         description = f"# {track}\n"
         description += f"by [**{artist}**]({artist_url})"
         if album:
              description += f"\non [**{album}**]({album_url})"
         
         embed = discord.Embed(
-            description=description, # Title moved here for size
+            description=description, # title moved here for size
             color=color
         )
         embed.set_author(name=status_text)
         
         if album_art:
-            # embed.set_thumbnail(url=album_art) # Removed as requested
-            embed.set_image(url=album_art)     # Keep Large Bottom
+            # embed.set_thumbnail(url=album_art) # removed as requested
+            embed.set_image(url=album_art)     # keep large bottom
 
-        # Footer with Track Scrobbles
+        # footer with track scrobbles
         track_scrobbles = await get_track_playcount(session, artist, track)
         embed.set_footer(text=f"Track Scrobbles: {track_scrobbles}")
 
-        # Controls View with Lyrics
+        # controls view with lyrics
         view = NowPlayingView(self.bot, youtube_link, track, artist)
 
         await interaction.followup.send(embed=embed, view=view)

@@ -6,16 +6,16 @@ BASE_URL = "https://ws.audioscrobbler.com/2.0/"
 
 def force_hd_url(url: str) -> str:
     """
-    Transforms a standard Last.fm image URL into the original high-res version.
-    Example: .../300x300/abc.jpg -> .../_/abc.jpg
+    transforms a standard last.fm image url into the original high-res version.
+    example: .../300x300/abc.jpg -> .../_/abc.jpg
     """
     if not url:
         return url
-    # Replaces the size segment (e.g., /300x300/ or /174s/) with /_/ 
+    # replaces the size segment (e.g., /300x300/ or /174s/) with /_/ 
     return re.sub(r'\/i\/u\/[^\/]+\/', '/i/u/_/', url)
 
 async def get_now_playing(session: aiohttp.ClientSession):
-    """Fetches current track info."""
+    """fetches current track info"""
     params = {
         "method": "user.getrecenttracks",
         "user": config.LASTFM_USERNAME,
@@ -44,9 +44,9 @@ async def get_now_playing(session: aiohttp.ClientSession):
 
 async def get_album_art(session: aiohttp.ClientSession, artist: str, album: str = None, track: str = None):
     """
-    Fetches the best available image URL and forces it to original resolution.
+    fetches the best available image url and forces it to original resolution
     """
-    # 1. Try Album lookup (usually most reliable for art)
+    # 1. try album lookup (usually most reliable for art)
     if album:
         params = {
             "method": "album.getinfo",
@@ -60,14 +60,14 @@ async def get_album_art(session: aiohttp.ClientSession, artist: str, album: str 
                 if response.status == 200:
                     res = await response.json()
                     images = res.get("album", {}).get("image", [])
-                    # Grab the first non-empty URL (checking largest sizes first)
+                    # grab the first non-empty url (checking largest sizes first)
                     raw_url = next((img["#text"] for img in reversed(images) if img["#text"]), None)
                     if raw_url:
                         return force_hd_url(raw_url)
         except Exception:
             pass
 
-    # 2. Fallback to Track lookup
+    # 2. fallback to track lookup
     if track:
         params = {
             "method": "track.getInfo",
@@ -90,7 +90,7 @@ async def get_album_art(session: aiohttp.ClientSession, artist: str, album: str 
     return None
 
 async def get_user_info(session: aiohttp.ClientSession):
-    """Fetches user profile information."""
+    """fetches user profile information"""
     params = {
         "method": "user.getinfo",
         "user": config.LASTFM_USERNAME,
@@ -107,7 +107,7 @@ async def get_user_info(session: aiohttp.ClientSession):
     return None
 
 async def get_recent_tracks(session: aiohttp.ClientSession, limit: int = 10):
-    """Fetches recent tracks."""
+    """fetches recent tracks"""
     params = {
         "method": "user.getrecenttracks",
         "user": config.LASTFM_USERNAME,
@@ -126,7 +126,7 @@ async def get_recent_tracks(session: aiohttp.ClientSession, limit: int = 10):
 
 async def get_top_items(session: aiohttp.ClientSession, period: str, method: str, limit: int = 10):
     """
-    Fetches top artists, albums, or tracks.
+    fetches top artists, albums, or tracks
     period: overall | 7day | 1month | 3month | 6month | 12month
     method: user.gettopartists | user.gettopalbums | user.gettoptracks
     """
@@ -142,7 +142,7 @@ async def get_top_items(session: aiohttp.ClientSession, period: str, method: str
         async with session.get(BASE_URL, params=params) as response:
             if response.status == 200:
                 data = await response.json()
-                # Determine the key based on method name
+                # determine the key based on method name
                 key_map = {
                     "user.gettopartists": "topartists",
                     "user.gettopalbums": "topalbums",
@@ -150,7 +150,7 @@ async def get_top_items(session: aiohttp.ClientSession, period: str, method: str
                 }
                 root_key = key_map.get(method)
                 if root_key:
-                    # The inner list key is usually artist, album, or track
+                    # the inner list key is usually artist, album, or track
                     item_key = root_key.replace("top", "").rstrip("s")
                     return data.get(root_key, {}).get(item_key, [])
     except Exception:
@@ -158,12 +158,12 @@ async def get_top_items(session: aiohttp.ClientSession, period: str, method: str
     return []
 
 async def get_weekly_track_chart(session: aiohttp.ClientSession):
-    """Fetches the user's weekly track chart list (timeline data)."""
-    # Note: user.getweeklytrackchart usually requires a specific from/to range,
+    """fetches the user's weekly track chart list (timeline data)"""
+    # note: user.getweeklytrackchart usually requires a specific from/to range,
     # but without args it defaults to most recent.
-    # Actually, for a timeline, we might want 'user.getweeklychartlist' to show available ranges,
+    # basically, for a timeline, we might want 'user.getweeklychartlist' to show available ranges,
     # or just use 'user.getrecenttracks' and aggregate manually if we want a detailed history graph.
-    # To keep it simple for now, let's use user.getweeklytrackchart for the last week.
+    # to keep it simple for now, let's use user.getweeklytrackchart for the last week.
     params = {
         "method": "user.getweeklytrackchart",
         "user": config.LASTFM_USERNAME,
@@ -182,13 +182,13 @@ async def get_weekly_track_chart(session: aiohttp.ClientSession):
     return []
 
 async def get_track_playcount(session: aiohttp.ClientSession, artist: str, track: str) -> str:
-    """Fetches the user's playcount for a specific track."""
+    """fetches the user's playcount for a specific track"""
     params = {
         "method": "track.getInfo",
         "api_key": config.LASTFM_API_KEY,
         "artist": artist,
         "track": track,
-        "username": config.LASTFM_USERNAME, # Needed to get userplaycount
+        "username": config.LASTFM_USERNAME, # needed to get userplaycount
         "format": "json"
     }
     try:
