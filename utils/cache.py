@@ -1,35 +1,60 @@
 import json
+import asyncio
 from pathlib import Path
 
 CACHE_FILE = Path("cache.json")
-_cache = None
 
-def _load():
-    """loads cache into memory if not already loaded"""
-    global _cache
-    if _cache is not None:
-        return
+class Cache:
+    def __init__(self):
+        self._data = {}
+        self._loaded = False
+        self._lock = asyncio.Lock()
 
-    if not CACHE_FILE.exists() or CACHE_FILE.stat().st_size == 0:
-        _cache = {}
-        return
-    
-    try:
-        _cache = json.loads(CACHE_FILE.read_text())
-    except (json.JSONDecodeError, UnicodeDecodeError):
-        print(f"⚠️ Warning: {CACHE_FILE} is corrupted. Resetting cache.")
-        _cache = {}
+    def _load_sync(self):
+        """synchronous load for executor"""
+        if not CACHE_FILE.exists():
+            return {}
+        try:
+            return json.loads(CACHE_FILE.read_text())
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            print(f"⚠️ warning: {CACHE_FILE} is corrupted. resetting cache.")
+            return {}
 
-def _save():
-    """saves memory cache to disk"""
-    if _cache is not None:
-        CACHE_FILE.write_text(json.dumps(_cache, indent=2))
+    def _save_sync(self, data):
+        """synchronous save for executor"""
+        CACHE_FILE.write_text(json.dumps(data, indent=2))
 
-def get(key: str):
-    _load()
-    return _cache.get(key)
+    async def load(self):
+        """loads cache asynchronously if not loaded"""
+        if self._loaded:
+            return
+        
+        loop = asyncio.get_running_loop()
+        async with self._lock:
+             # double check inside lock
+            if self._loaded: 
+                return
+            self._data = await loop.run_in_executor(None, self._load_sync)
+            self._loaded = True
 
-def set(key: str, value):
-    _load()
-    _cache[key] = value
-    _save()
+    async def get(self, key: str):
+        """get value by key"""
+        if not self._loaded:
+            await self.load()
+        return self._data.get(key)
+
+    async def set(self, key: str, value):
+        """set value and save asynchronously"""
+        if not self._loaded:
+            await self.load()
+        
+        self._data[key] = value
+        
+        # save to disk
+        loop = asyncio.get_running_loop()
+        # we copy data to avoid thread safety issues during write if it changes
+        data_to_save = self._data.copy()
+        await loop.run_in_executor(None, self._save_sync, data_to_save)
+
+# global instance
+cache = Cache()

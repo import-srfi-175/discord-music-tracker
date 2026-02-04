@@ -6,8 +6,7 @@ import config
 from services.lastfm import get_now_playing, get_album_art, get_track_playcount
 from services.lyrics import get_lyrics
 from services.youtube import get_youtube_link
-from utils.cache import get as cache_get, set as cache_set
-from utils.image import get_dominant_color
+from utils.cache import cache
 
 class NowPlayingView(discord.ui.View):
     def __init__(self, bot, youtube_link, track, artist):
@@ -25,7 +24,17 @@ class NowPlayingView(discord.ui.View):
         # explicit loading state
         await interaction.response.send_message("🔍 **Searching for lyrics...**", ephemeral=True)
         
-        lyrics = await get_lyrics(self.bot.session, self.track, self.artist)
+        # check cache first
+        cache_key = f"{self.artist} - {self.track}"
+        cached_data = await cache.get(cache_key) or {}
+        lyrics = cached_data.get("lyrics")
+
+        if not lyrics:
+            lyrics = await get_lyrics(self.bot.session, self.track, self.artist)
+            # cache if found
+            if lyrics:
+                cached_data["lyrics"] = lyrics
+                await cache.set(cache_key, cached_data)
         
         if lyrics:
             # discord limit is 4096 chars for description
@@ -65,7 +74,7 @@ class NowPlaying(commands.Cog):
 
         # cache logic
         cache_key = f"{artist} - {track}"
-        cached = cache_get(cache_key) or {}
+        cached = await cache.get(cache_key) or {}
 
         # fetch album art
         album_art = cached.get("album_art")
@@ -83,7 +92,7 @@ class NowPlaying(commands.Cog):
 
         # update cache
         if cached:
-            cache_set(cache_key, cached)
+            await cache.set(cache_key, cached)
 
         # ui/ux logic
         color = await get_dominant_color(session, album_art) if album_art else 0x2F3136
