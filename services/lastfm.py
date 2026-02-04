@@ -86,3 +86,93 @@ async def get_album_art(session: aiohttp.ClientSession, artist: str, album: str 
             pass
 
     return None
+
+async def get_user_info(session: aiohttp.ClientSession):
+    """Fetches user profile information."""
+    params = {
+        "method": "user.getinfo",
+        "user": config.LASTFM_USERNAME,
+        "api_key": config.LASTFM_API_KEY,
+        "format": "json"
+    }
+    try:
+        async with session.get(BASE_URL, params=params) as response:
+            if response.status == 200:
+                data = await response.json()
+                return data.get("user")
+    except Exception:
+        pass
+    return None
+
+async def get_recent_tracks(session: aiohttp.ClientSession, limit: int = 10):
+    """Fetches recent tracks."""
+    params = {
+        "method": "user.getrecenttracks",
+        "user": config.LASTFM_USERNAME,
+        "api_key": config.LASTFM_API_KEY,
+        "format": "json",
+        "limit": limit
+    }
+    try:
+        async with session.get(BASE_URL, params=params) as response:
+            if response.status == 200:
+                data = await response.json()
+                return data.get("recenttracks", {}).get("track", [])
+    except Exception:
+        pass
+    return []
+
+async def get_top_items(session: aiohttp.ClientSession, period: str, method: str, limit: int = 10):
+    """
+    Fetches top artists, albums, or tracks.
+    period: overall | 7day | 1month | 3month | 6month | 12month
+    method: user.gettopartists | user.gettopalbums | user.gettoptracks
+    """
+    params = {
+        "method": method,
+        "user": config.LASTFM_USERNAME,
+        "api_key": config.LASTFM_API_KEY,
+        "format": "json",
+        "period": period,
+        "limit": limit
+    }
+    try:
+        async with session.get(BASE_URL, params=params) as response:
+            if response.status == 200:
+                data = await response.json()
+                # Determine the key based on method name
+                key_map = {
+                    "user.gettopartists": "topartists",
+                    "user.gettopalbums": "topalbums",
+                    "user.gettoptracks": "toptracks"
+                }
+                root_key = key_map.get(method)
+                if root_key:
+                    # The inner list key is usually artist, album, or track
+                    item_key = root_key.replace("top", "").rstrip("s")
+                    return data.get(root_key, {}).get(item_key, [])
+    except Exception:
+        pass
+    return []
+
+async def get_weekly_track_chart(session: aiohttp.ClientSession):
+    """Fetches the user's weekly track chart list (timeline data)."""
+    # Note: user.getweeklytrackchart usually requires a specific from/to range,
+    # but without args it defaults to most recent.
+    # Actually, for a timeline, we might want 'user.getweeklychartlist' to show available ranges,
+    # or just use 'user.getrecenttracks' and aggregate manually if we want a detailed history graph.
+    # To keep it simple for now, let's use user.getweeklytrackchart for the last week.
+    params = {
+        "method": "user.getweeklytrackchart",
+        "user": config.LASTFM_USERNAME,
+        "api_key": config.LASTFM_API_KEY,
+        "format": "json"
+    }
+    try:
+        async with session.get(BASE_URL, params=params) as response:
+            if response.status == 200:
+                data = await response.json()
+                return data.get("weeklytrackchart", {}).get("track", [])
+    except Exception:
+        pass
+    return []

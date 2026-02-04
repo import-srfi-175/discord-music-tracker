@@ -18,8 +18,10 @@ class MusicBot(discord.Client):
         await self.load_extension("commands.nowplaying")
         
         # 🌍 GLOBAL sync (works in any server)
-        await self.tree.sync()
-        print("🌍 Slash commands synced globally")
+        synced = await self.tree.sync()
+        print(f"🌍 Slash commands synced globally: {len(synced)} commands")
+        for cmd in synced:
+            print(f" - /{cmd.name}")
 
     async def close(self):
         await super().close()
@@ -48,6 +50,8 @@ class MusicBot(commands.Bot):
         
         # Load extensions
         await self.load_extension("commands.nowplaying")
+        await self.load_extension("commands.user")
+        await self.load_extension("commands.charts")
         
         await self.tree.sync()
         print("🌍 Slash commands synced globally")
