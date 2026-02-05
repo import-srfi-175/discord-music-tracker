@@ -55,6 +55,8 @@ class NowPlaying(commands.Cog):
         name="nowplaying",
         description="Show what I am currently listening to"
     )
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def nowplaying(self, interaction: discord.Interaction):
         # 1. immediately defer the response
         await interaction.response.defer()

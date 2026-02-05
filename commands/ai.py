@@ -26,6 +26,8 @@ class AI(commands.Cog):
         return None
 
     @app_commands.command(name="funfact", description="Get a fun fact about what's playing (or music in general)")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def funfact(self, interaction: discord.Interaction):
         await interaction.response.defer()
 
@@ -64,6 +66,8 @@ class AI(commands.Cog):
             await interaction.followup.send(f"❌ Brain freeze: {str(e)}", ephemeral=True)
 
     @app_commands.command(name="chat", description="Chat with Kairos about music")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def chat(self, interaction: discord.Interaction, message: str):
         await interaction.response.defer()
 

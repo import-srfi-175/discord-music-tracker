@@ -9,6 +9,8 @@ class UserCommands(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="profile", description="Show your Last.fm profile stats")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def profile(self, interaction: discord.Interaction):
         await interaction.response.defer()
         
@@ -35,6 +37,8 @@ class UserCommands(commands.Cog):
         await interaction.followup.send(embed=embed)
 
     @app_commands.command(name="recent", description="Show your last 10 tracks")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def recent(self, interaction: discord.Interaction):
         await interaction.response.defer()
         

@@ -6,7 +6,7 @@ from io import BytesIO
 
 from services.lastfm import get_top_items, get_weekly_track_chart, get_album_art
 from utils.image import create_collage
-from utils.graph import create_timeline_url
+
 
 Period = Literal["7day", "1month", "3month", "6month", "12month", "overall"]
 
@@ -15,6 +15,8 @@ class ChartCommands(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="top", description="View your top artists, albums, or tracks")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def top(self, interaction: discord.Interaction, 
                   category: Literal["artists", "albums", "tracks"], 
                   period: Period = "7day"):
@@ -47,6 +49,8 @@ class ChartCommands(commands.Cog):
         await interaction.followup.send(embed=embed)
 
     @app_commands.command(name="collage", description="Generate a collage of your top albums")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def collage(self, interaction: discord.Interaction, size: Literal["3x3", "5x5"] = "3x3", period: Period = "7day"):
         await interaction.response.defer()
         
@@ -78,33 +82,7 @@ class ChartCommands(commands.Cog):
         
         await interaction.followup.send(embed=embed, file=file)
 
-    @app_commands.command(name="timeline", description="View your listening timeline")
-    async def timeline(self, interaction: discord.Interaction):
-        await interaction.response.defer()
-        
-        # Using weekly track chart for now as it gives recent history with timestamps (sometimes)
-        # Or just recent tracks. Last.fm API is a bit limited on strict 'history' availability for free/simple calls.
-        # user.getrecenttracks gives exact timestamps. Let's fetch last 200 tracks and plot them.
-        
-        tracks = await self.bot.loop.run_in_executor(None, lambda: []) # placeholder if needed, but we have async service
-        
-        # We need a new service method or just reuse get_recent_tracks with high limit
-        # Let's import get_recent_tracks again locally or assume it's available via service
-        from services.lastfm import get_recent_tracks
-        tracks = await get_recent_tracks(self.bot.session, limit=200)
-        
-        if not tracks:
-             await interaction.followup.send("❌ Not enough data for timeline.", ephemeral=True)
-             return
-             
-        url = create_timeline_url(tracks)
-        if not url:
-            await interaction.followup.send("❌ Could not generate timeline.", ephemeral=True)
-            return
-            
-        embed = discord.Embed(title="Listening Timeline (Last 200 tracks)", color=0xba0000)
-        embed.set_image(url=url)
-        await interaction.followup.send(embed=embed)
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(ChartCommands(bot))
