@@ -21,9 +21,31 @@ class MusicBot(commands.Bot):
         await self.load_extension("commands.user")
         await self.load_extension("commands.charts")
         await self.load_extension("commands.ai")
+        await self.add_cog(Sync(self))
         
         await self.tree.sync()
         print("[INFO] Slash commands synced globally")
+
+class Sync(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.command()
+    @commands.is_owner()
+    async def sync(self, ctx, spec: str = None):
+        if spec == "guild":
+            synced = await ctx.bot.tree.sync(guild=ctx.guild)
+            await ctx.send(f"Synced {len(synced)} commands to this guild.")
+        else:
+            synced = await ctx.bot.tree.sync()
+            await ctx.send(f"Synced {len(synced)} commands globally.")
+
+    @commands.command()
+    @commands.is_owner()
+    async def clear(self, ctx):
+        ctx.bot.tree.clear_commands(guild=ctx.guild)
+        await ctx.bot.tree.sync(guild=ctx.guild)
+        await ctx.send("Cleared guild commands.")
 
     async def close(self):
         await super().close()

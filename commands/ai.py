@@ -31,7 +31,7 @@ class AI(commands.Cog):
     async def funfact(self, interaction: discord.Interaction):
         await interaction.response.defer()
 
-        if not self.model:
+        if not self.client:
             await interaction.followup.send("❌ Gemini API Key is missing.", ephemeral=True)
             return
 
@@ -71,7 +71,7 @@ class AI(commands.Cog):
     async def chat(self, interaction: discord.Interaction, message: str):
         await interaction.response.defer()
 
-        if not self.model:
+        if not self.client:
             await interaction.followup.send("❌ Gemini API Key is missing.", ephemeral=True)
             return
 
