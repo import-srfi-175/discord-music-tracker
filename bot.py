@@ -26,6 +26,11 @@ class MusicBot(commands.Bot):
         await self.tree.sync()
         print("[INFO] Slash commands synced globally")
 
+    async def close(self):
+        await super().close()
+        if self.session:
+            await self.session.close()
+
 class Sync(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -47,10 +52,7 @@ class Sync(commands.Cog):
         await ctx.bot.tree.sync(guild=ctx.guild)
         await ctx.send("Cleared guild commands.")
 
-    async def close(self):
-        await super().close()
-        if self.session:
-            await self.session.close()
+
 
 bot = MusicBot()
 

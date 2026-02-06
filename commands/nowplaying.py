@@ -1,7 +1,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-import config
+
 
 from services.lastfm import get_now_playing, get_album_art, get_track_playcount
 from services.lyrics import get_lyrics
