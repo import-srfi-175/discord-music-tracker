@@ -21,6 +21,7 @@ class MusicBot(commands.Bot):
         await self.load_extension("commands.user")
         await self.load_extension("commands.charts")
         await self.load_extension("commands.ai")
+        await self.load_extension("commands.currency")
         await self.add_cog(Sync(self))
         
         await self.tree.sync()
